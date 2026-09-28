@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "source_file": "reviews.csv",
+    "model": "openai/gpt-oss-20b",
+    "generated_at": "2026-09-28T02:01:26.168483+00:00",
+    "items_count": 8
+  },
+  "results": [
+    {
+      "id": "1",
+      "sentiment": "positive",
+      "topic": "product_quality",
+      "confidence": 0.95
+    },
+    {
+      "id": "2",
+      "sentiment": "negative",
+      "topic": "delivery",
+      "confidence": 0.9
+    },
+    {
+      "id": "3",
+      "sentiment": "neutral",
+      "topic": "price",
+      "confidence": 0.8
+    },
+    {
+      "id": "4",
+      "sentiment": "positive",
+      "topic": "customer_service",
+      "confidence": 0.92
+    },
+    {
+      "id": "5",
+      "sentiment": "negative",
+      "topic": "usability",
+      "confidence": 0.88
+    },
+    {
+      "id": "6",
+      "sentiment": "negative",
+      "topic": "product_quality",
+      "confidence": 0.9
+    },
+    {
+      "id": "7",
+      "sentiment": "positive",
+      "topic": "delivery",
+      "confidence": 0.95
+    },
+    {
+      "id": "8",
+      "sentiment": "negative",
+      "topic": "price",
+      "confidence": 0.85
+    }
+  ]
+}
