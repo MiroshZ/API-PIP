@@ -1,4 +1,4 @@
-"""CSV -> Gemini LLM -> validated JSON pipeline for review classification."""
+"""CSV -> Groq-hosted LLM -> validated JSON review classification pipeline."""
 
 from __future__ import annotations
 
@@ -11,12 +11,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-from google import genai
-from google.genai import errors
+from groq import APIError, Groq
 from pydantic import BaseModel, ConfigDict, Field
 
 
-DEFAULT_MODEL = "gemini-3.1-flash-lite"
+DEFAULT_MODEL = "openai/gpt-oss-20b"
 
 
 class Review(BaseModel):
@@ -45,7 +44,7 @@ class ReviewAnalysis(BaseModel):
 
 
 class ReviewAnalysisBatch(BaseModel):
-    """Strict structured-output schema sent to the Gemini SDK."""
+    """Strict structured-output schema sent to the Groq SDK."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -82,7 +81,7 @@ def _chunks(items: list[Review], size: int) -> list[list[Review]]:
 
 
 def analyze_reviews(
-    client: genai.Client,
+    client: Groq,
     reviews: list[Review],
     model: str,
     batch_size: int,
@@ -92,28 +91,37 @@ def analyze_reviews(
     analyses: list[ReviewAnalysis] = []
     for batch_number, batch in enumerate(_chunks(reviews, batch_size), start=1):
         payload = [review.model_dump() for review in batch]
-        prompt = (
-            "You classify Russian-language customer reviews. "
-            "For every input item, return exactly one result. Preserve each id exactly. "
-            "Choose one sentiment and the single dominant topic. "
-            "Use other only when no listed topic fits. Confidence must be from 0 to 1.\n\n"
-            f"Reviews:\n{json.dumps(payload, ensure_ascii=False)}"
-        )
-        response = client.interactions.create(
+        response = client.chat.completions.create(
             model=model,
-            input=prompt,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You classify Russian-language customer reviews. "
+                        "For every input item, return exactly one result. Preserve each id exactly. "
+                        "Choose one sentiment and the single dominant topic. "
+                        "Use other only when no listed topic fits. Confidence must be from 0 to 1."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(payload, ensure_ascii=False),
+                },
+            ],
             response_format={
-                "type": "text",
-                "mime_type": "application/json",
-                "schema": ReviewAnalysisBatch.model_json_schema(),
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "review_analysis_batch",
+                    "strict": True,
+                    "schema": ReviewAnalysisBatch.model_json_schema(),
+                },
             },
-            service_tier="standard",
-            store=False,
         )
 
-        if not response.output_text:
+        content = response.choices[0].message.content
+        if not content:
             raise RuntimeError(f"Batch {batch_number}: the model returned no parsed output")
-        parsed = ReviewAnalysisBatch.model_validate_json(response.output_text)
+        parsed = ReviewAnalysisBatch.model_validate_json(content)
 
         expected_ids = [review.id for review in batch]
         actual_ids = [item.id for item in parsed.results]
@@ -151,11 +159,11 @@ def save_result(path: Path, source: Path, model: str, results: list[ReviewAnalys
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Classify reviews from CSV with Gemini and save JSON."
+        description="Classify reviews from CSV with a Groq-hosted LLM and save JSON."
     )
     parser.add_argument("--input", type=Path, default=Path("data/reviews.csv"))
     parser.add_argument("--output", type=Path, default=Path("results/reviews_analysis.json"))
-    parser.add_argument("--model", default=os.getenv("GEMINI_MODEL", DEFAULT_MODEL))
+    parser.add_argument("--model", default=os.getenv("GROQ_MODEL", DEFAULT_MODEL))
     parser.add_argument("--batch-size", type=int, default=10)
     return parser.parse_args()
 
@@ -165,15 +173,15 @@ def main() -> int:
     if args.batch_size < 1:
         print("Error: --batch-size must be at least 1", file=sys.stderr)
         return 2
-    if not os.getenv("GEMINI_API_KEY"):
-        print("Error: set the GEMINI_API_KEY environment variable", file=sys.stderr)
+    if not os.getenv("GROQ_API_KEY"):
+        print("Error: set the GROQ_API_KEY environment variable", file=sys.stderr)
         return 2
 
     try:
         reviews = load_reviews(args.input)
-        results = analyze_reviews(genai.Client(), reviews, args.model, args.batch_size)
+        results = analyze_reviews(Groq(), reviews, args.model, args.batch_size)
         save_result(args.output, args.input, args.model, results)
-    except (OSError, ValueError, RuntimeError, errors.APIError) as error:
+    except (OSError, ValueError, RuntimeError, APIError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
 

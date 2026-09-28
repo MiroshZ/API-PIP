@@ -1,6 +1,6 @@
 # API-PIP
 
-Учебный API-пайплайн: CSV с отзывами → Google Gemini LLM → структурированный
+Учебный API-пайплайн: CSV с отзывами → LLM через GroqCloud → структурированный
 JSON.
 
 Скрипт читает отзывы на русском языке, определяет тональность
@@ -23,7 +23,7 @@ API-PIP/
 ## Требования
 
 - Python 3.10 или новее;
-- бесплатный API-ключ Gemini из Google AI Studio.
+- бесплатный API-ключ из GroqCloud.
 
 ## Установка и запуск
 
@@ -33,7 +33,7 @@ cd API-PIP
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-export GEMINI_API_KEY="ваш_ключ"
+export GROQ_API_KEY="ваш_ключ"
 python main.py
 ```
 
@@ -44,17 +44,17 @@ python main.py
 python main.py \
   --input data/reviews.csv \
   --output results/reviews_analysis.json \
-  --model gemini-3.1-flash-lite \
+  --model openai/gpt-oss-20b \
   --batch-size 10
 ```
 
 Ключ хранится только в переменной окружения и не записывается в репозиторий.
-Модель также можно переопределить переменной `GEMINI_MODEL`.
+Модель также можно переопределить переменной `GROQ_MODEL`.
 
 Ключ можно бесплатно создать на странице
-[Google AI Studio API Keys](https://aistudio.google.com/app/apikey). Модель
-`gemini-3.1-flash-lite` имеет бесплатный тариф с лимитами запросов; актуальные
-условия указаны в [официальном прайсе Gemini API](https://ai.google.dev/gemini-api/docs/pricing).
+[GroqCloud API Keys](https://console.groq.com/keys). Для модели
+`openai/gpt-oss-20b` действует бесплатный тариф с лимитами запросов; актуальные
+значения указаны в [официальной таблице лимитов](https://console.groq.com/docs/rate-limits).
 
 ## Формат входных данных
 
@@ -77,7 +77,7 @@ id,text
 {
   "metadata": {
     "source_file": "reviews.csv",
-    "model": "gemini-3.1-flash-lite",
+    "model": "openai/gpt-oss-20b",
     "generated_at": "<UTC timestamp>",
     "items_count": 2
   },
@@ -109,10 +109,11 @@ python -m unittest discover -s tests -v
 ## Как работает пайплайн
 
 1. `load_reviews` читает CSV и проверяет обязательные поля и уникальность ID.
-2. `analyze_reviews` отправляет отзывы пакетами через Gemini Interactions API.
-3. Gemini Structured Outputs требует JSON по схеме `ReviewAnalysisBatch`.
+2. `analyze_reviews` отправляет отзывы пакетами через Groq Chat Completions API.
+3. Groq Structured Outputs в строгом режиме требует JSON по схеме
+   `ReviewAnalysisBatch`.
 4. Скрипт дополнительно сверяет набор ID с входными данными.
 5. `save_result` записывает метаданные и результаты в UTF-8 JSON.
 
-Документация Gemini: [быстрый старт](https://ai.google.dev/gemini-api/docs/get-started)
-и [Structured Outputs](https://ai.google.dev/gemini-api/docs/structured-output).
+Документация Groq: [быстрый старт](https://console.groq.com/docs/quickstart) и
+[Structured Outputs](https://console.groq.com/docs/structured-outputs).
