@@ -1,6 +1,7 @@
 # API-PIP
 
-Учебный API-пайплайн: CSV с отзывами → OpenAI LLM → структурированный JSON.
+Учебный API-пайплайн: CSV с отзывами → Google Gemini LLM → структурированный
+JSON.
 
 Скрипт читает отзывы на русском языке, определяет тональность
 (`positive`, `negative`, `neutral`), основную тему и уверенность модели. Ответ
@@ -22,7 +23,7 @@ API-PIP/
 ## Требования
 
 - Python 3.10 или новее;
-- API-ключ OpenAI с доступом к выбранной модели.
+- бесплатный API-ключ Gemini из Google AI Studio.
 
 ## Установка и запуск
 
@@ -32,7 +33,7 @@ cd API-PIP
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-export OPENAI_API_KEY="ваш_ключ"
+export GEMINI_API_KEY="ваш_ключ"
 python main.py
 ```
 
@@ -43,12 +44,17 @@ python main.py
 python main.py \
   --input data/reviews.csv \
   --output results/reviews_analysis.json \
-  --model gpt-6-astra \
+  --model gemini-3.1-flash-lite \
   --batch-size 10
 ```
 
 Ключ хранится только в переменной окружения и не записывается в репозиторий.
-Модель также можно переопределить переменной `OPENAI_MODEL`.
+Модель также можно переопределить переменной `GEMINI_MODEL`.
+
+Ключ можно бесплатно создать на странице
+[Google AI Studio API Keys](https://aistudio.google.com/app/apikey). Модель
+`gemini-3.1-flash-lite` имеет бесплатный тариф с лимитами запросов; актуальные
+условия указаны в [официальном прайсе Gemini API](https://ai.google.dev/gemini-api/docs/pricing).
 
 ## Формат входных данных
 
@@ -71,7 +77,7 @@ id,text
 {
   "metadata": {
     "source_file": "reviews.csv",
-    "model": "gpt-6-astra",
+    "model": "gemini-3.1-flash-lite",
     "generated_at": "<UTC timestamp>",
     "items_count": 2
   },
@@ -103,9 +109,10 @@ python -m unittest discover -s tests -v
 ## Как работает пайплайн
 
 1. `load_reviews` читает CSV и проверяет обязательные поля и уникальность ID.
-2. `analyze_reviews` отправляет отзывы пакетами через OpenAI Responses API.
-3. `responses.parse` требует ответ по модели `ReviewAnalysisBatch`.
+2. `analyze_reviews` отправляет отзывы пакетами через Gemini Interactions API.
+3. Gemini Structured Outputs требует JSON по схеме `ReviewAnalysisBatch`.
 4. Скрипт дополнительно сверяет набор ID с входными данными.
 5. `save_result` записывает метаданные и результаты в UTF-8 JSON.
 
-Документация OpenAI: [Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses) и [Structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Документация Gemini: [быстрый старт](https://ai.google.dev/gemini-api/docs/get-started)
+и [Structured Outputs](https://ai.google.dev/gemini-api/docs/structured-output).
