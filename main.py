@@ -58,10 +58,14 @@ def load_reviews(path: Path) -> list[Review]:
         reader = csv.DictReader(source)
         if reader.fieldnames is None or not {"id", "text"}.issubset(reader.fieldnames):
             raise ValueError("CSV must contain the columns 'id' and 'text'")
+        if len(reader.fieldnames) != len(set(reader.fieldnames)):
+            raise ValueError("CSV contains duplicate column names")
 
         reviews: list[Review] = []
         seen_ids: set[str] = set()
         for row_number, row in enumerate(reader, start=2):
+            if None in row or any(value is None for value in row.values()):
+                raise ValueError(f"Row {row_number}: wrong number of CSV fields")
             review_id = (row.get("id") or "").strip()
             text = (row.get("text") or "").strip()
             if not review_id or not text:

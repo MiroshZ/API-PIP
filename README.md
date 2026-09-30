@@ -28,7 +28,7 @@ API-PIP/
 ## Установка и запуск
 
 ```bash
-git clone <ССЫЛКА_НА_РЕПОЗИТОРИЙ>/API-PIP.git
+git clone https://github.com/MiroshZ/API-PIP.git
 cd API-PIP
 python3 -m venv .venv
 source .venv/bin/activate
@@ -79,7 +79,7 @@ id,text
     "source_file": "reviews.csv",
     "model": "openai/gpt-oss-20b",
     "generated_at": "<UTC timestamp>",
-    "items_count": 2
+    "items_count": 1
   },
   "results": [
     {
@@ -103,8 +103,9 @@ id,text
 python -m unittest discover -s tests -v
 ```
 
-Перед сдачей убедитесь, что файл `results/reviews_analysis.json` создан именно
-реальным запуском скрипта и добавлен в Git.
+В папке `results` уже есть JSON с результатами для девяти отзывов из
+`data/reviews.csv`. После изменения входного файла запустите скрипт повторно
+и добавьте обновлённые CSV и JSON в Git перед сдачей.
 
 ## Как работает пайплайн
 

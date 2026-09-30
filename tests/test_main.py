@@ -25,6 +25,14 @@ class PipelineTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "duplicate id"):
                 load_reviews(source)
 
+    def test_malformed_csv_row_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "reviews.csv"
+            source.write_text("id,text\n1,Первый,лишнее поле\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "wrong number of CSV fields"):
+                load_reviews(source)
+
     def test_save_result_creates_valid_json(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "result.json"
